@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComicFlow · 漫剧创作工作流</title>
+<style>
+:root {
+  --bg: #0a0e1a; --panel: #111827; --panel2: #1a2235; --border: #2a3550;
+  --text: #e2e8f0; --muted: #64748b; --accent: #7c6dfa; --accent2: #06b6d4;
+  --accent3: #f472b6; --accent4: #fb923c; --success: #10b981; --warn: #f59e0b;
+  --danger: #ef4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* HEADER */
+.header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 20px; font-weight: 800; background: linear-gradient(135deg, #7c6dfa, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.header-actions { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.btn { padding: 6px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); color: var(--text); cursor: pointer; font-size: 13px; transition: all 0.2s; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6b5ce7; }
+.btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* MAIN LAYOUT */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* LEFT SIDEBAR */
+.sidebar { width: 260px; min-width: 260px; background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sidebar-section { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.sidebar-section h3 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.15s; color: var(--muted); }
+.nav-item:hover { background: var(--panel); color: var(--text); }
+.nav-item.active { background: rgba(124,109,250,0.15); color: var(--accent); }
+.nav-item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.nav-item.active .dot { background: var(--accent); }
+.nav-item .badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 10px; }
+.stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+.stat-card .num { font-size: 20px; font-weight: 700; color: var(--accent); }
+.stat-card .label { font-size: 11px; color: var(--muted); }
+
+/* CENTER CONTENT */
+.center { flex: 1; overflow-y: auto; padding: 20px; }
+
+/* SCRIPT PANEL */
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+.panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+.panel-header .icon { font-size: 18px; }
+.panel-body { padding: 16px; }
+
+textarea { width: 100%; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 12px; font-size: 14px; line-height: 1.8; resize: vertical; min-height: 200px; outline: none; }
+textarea:focus { border-color: var(--accent); }
+
+/* EXTRACTED ASSETS */
+.assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.asset-card { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; transition: all 0.2s; cursor: pointer; }
+.asset-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.asset-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,109,250,0.3); }
+.asset-card .tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+.tag-char { background: rgba(124,109,250,0.2); color: var(--accent); }
+.tag-scene { background: rgba(6,182,212,0.2); color: var(--accent2); }
+.tag-prop { background: rgba(244,114,182,0.2); color: var(--accent3); }
+.tag-weapon { background: rgba(251,146,60,0.2); color: var(--accent4); }
+.asset-card .name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.asset-card .desc { font-size: 12px; color: var(--muted); }
+.asset-card .img-placeholder { width: 100%; aspect-ratio: 4/3; background: var(--panel); border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--border); overflow: hidden; }
+.asset-card .img-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+.version-selector { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.version-chip { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--border); cursor: pointer; }
+.version-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* STORYBOARD */
+.storyboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.sb-panel { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: all 0.2s; }
+.sb-panel:hover { border-color: var(--accent); }
+.sb-panel .sb-img { width: 100%; aspect-ratio: 16/9; background: var(--panel); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--border); overflow: hidden; position: relative; }
+.sb-panel .sb-img img { width: 100%; height: 100%; object-fit: cover; }
+.sb-panel .sb-img .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+.sb-panel .sb-img:hover .overlay { opacity: 1; }
+.sb-panel .sb-img .gen-btn { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.sb-panel .sb-meta { padding: 10px; }
+.sb-panel .sb-num { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.sb-panel .sb-desc { font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+.sb-panel .sb-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.sb-panel .sb-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+.sb-add { background: var(--panel2); border: 2px dashed var(--border); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; cursor: pointer; color: var(--muted); gap: 8px; transition: all 0.2s; }
+.sb-add:hover { border-color: var(--accent); color: var(--accent); }
+.sb-add .plus { font-size: 32px; }
+
+/* RIGHT PANEL */
+.right-panel { width: 300px; min-width: 300px; background: var(--panel); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px; }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 12px; }
+.tab { flex: 1; text-align: center; padding: 6px; border-radius: 6px; font-size: 12px; cursor: pointer; background: var(--panel2); color: var(--muted); transition: all 0.15s; }
+.tab.active { background: var(--accent); color: #fff; }
+.detail-item { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+.detail-item .label { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.detail-item .value { font-size: 13px; }
+.ai-service { display: flex; gap: 8px; margin-bottom: 8px; }
+.ai-btn { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel2); cursor: pointer; text-align: center; font-size: 12px; color: var(--muted); transition: all 0.2s; }
+.ai-btn:hover, .ai-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(124,109,250,0.1); }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 24px; }
+.modal h2 { margin-bottom: 16px; font-size: 18px; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.form-group input, .form-group select { width: 100%; padding: 8px 12px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; }
+.form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+
+/* STATUS */
+.status-bar { background: var(--panel); border-top: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 24px; font-size: 12px; color: var(--muted); position: sticky; bottom: 0; }
+.status-bar .item { display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.status-dot.green { background: var(--success); }
+.status-dot.yellow { background: var(--warn); }
+.status-dot.red { background: var(--danger); }
+
+/* VIEW SWITCH */
+.view { display: none; }
+.view.active { display: block; }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 48px; color: var(--muted); }
+.empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+/* PROGRESS BAR */
+.progress-bar { width: 100%; height: 4px; background: var(--panel2); border-radius: 2px; margin: 8px 0; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.3s; }
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .right-panel { width: 250px; min-width: 250px; }
+}
+@media (max-width: 768px) {
+  .main { flex-direction: column; }
+  .sidebar, .right-panel { width: 100%; min-width: unset; max-height: 200px; }
+  .center { min-height: 60vh; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🎬 ComicFlow</div>
+  <div style="font-size:13px;color:var(--muted)">漫剧创作工作流平台</div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportProject()">📦 导出项目</button>
+    <button class="btn" onclick="importProject()">📂 导入项目</button>
+    <button class="btn btn-primary" onclick="saveToGitHub()">💾 保存到GitHub</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>📊 项目概览</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="stat-card"><div class="num" id="stat-chars">0</div><div class="label">角色</div></div>
+        <div class="stat-card"><div class="num" id="stat-scenes">0</div><div class="label">场景</div></div>
+        <div class="stat-card"><div class="num" id="stat-props">0</div><div class="label">道具</div></div>
+        <div class="stat-card"><div class="num" id="stat-boards">0</div><div class="label">分镜</div></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🗂️ 资产库</h3>
+      <div class="nav-item active" onclick="switchView('script')">
+        <div class="dot"></div>剧本解析
+      </div>
+      <div class="nav-item" onclick="switchView('characters')">
+        <div class="dot"></div>角色管理
+        <span class="badge" id="badge-chars">0</span>
+      </div>
+      <div class="nav-item" onclick="switchView('scenes')">
+        <div class="dot"></div>场景管理
+        <span class="badge" id="badge-scenes">0</span>
+      </div>
+      <div class="nav-item" onclick="switchView('props')">
+        <div class="dot"></div>道具管理
+        <span class="badge" id="badge-props">0</span>
+      </div>
+      <div class="nav-item" onclick="switchView('storyboard')">
+        <div class="dot"></div>分镜制作
+        <span class="badge" id="badge-boards">0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>🤖 AI 服务</h3>
+      <div class="ai-service">
+        <button class="ai-btn active" onclick="selectAI('flux')">Flux</button>
+        <button class="ai-btn" onclick="selectAI('midjourney')">MJ</button>
+        <button class="ai-btn" onclick="selectAI('dalle')">DALL·E</button>
+      </div>
+      <select style="width:100%;padding:6px 10px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;outline:none;">
+        <option>Flux 1.1 Pro</option>
+        <option>Flux Dev</option>
+        <option>Flux Schnell</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+
+    <!-- SCRIPT VIEW -->
+    <div class="view active" id="view-script">
+      <div class="panel">
+        <div class="panel-header"><span class="icon">📜</span>剧本上传与解析</div>
+        <div class="panel-body">
+          <textarea id="script-input" placeholder="粘贴剧本内容到这里...
+
+示例格式：
+【第一幕·街道】
+旁白：清晨的阳光洒在石板路上。
+角色：林远（青年侦探）走向街角的茶馆。
+场景：茶馆内，老友李明已在等候。
+道具：茶盏、神秘信件
+..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-primary" onclick="parseScript()">🔍 解析剧本</button>
+            <button class="btn" onclick="loadSampleScript()">📋 加载示例剧本</button>
+            <button class="btn" onclick="clearScript()">🗑️ 清空</button>
+          </div>
+          <div class="progress-bar" id="parse-progress" style="display:none;margin-top:12px;">
+            <div class="progress-fill" id="parse-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXTRACTED ASSETS -->
+      <div class="panel" id="extracted-panel" style="display:none;">
+        <div class="panel-header"><span class="icon">✨</span>提取结果</div>
+        <div class="panel-body">
+          <div class="assets-grid" id="assets-grid"></div>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <button class="btn btn-success" onclick="createCharacterFromExtracted()">➕ 创建角色资产</button>
+            <button class="btn btn-success" onclick="createSceneFromExtracted()">➕ 创建场景资产</button>
+            <button class="btn btn-success" onclick="createPropFromExtracted()">➕ 创建道具资产</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARACTERS VIEW -->
+    <div class="view" id="view-characters">
+      <div class="panel">
+        <div class="panel-header"><span class="icon">👤</span>角色管理</div>
+        <div class="panel-body">
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <input type="text" id="char-search" placeholder="搜索角色..." style="flex:1;padding:8px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;" oninput="filterAssets('char')">
+            <button class="btn btn-primary" onclick="openModal('char-modal')">➕ 添加角色</button>
+          </div>
+          <div class="assets-grid" id="chars-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCENES VIEW -->
+    <div class="view" id="view-scenes">
+      <div class="panel">
+        <div class="panel-header"><span class="icon">🏞️</span>场景管理</div>
+        <div class="panel-body">
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button class="btn btn-primary" onclick="openModal('scene-modal')">➕ 添加场景</button>
+          </div>
+          <div class="assets-grid" id="scenes-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPS VIEW -->
+    <div class="view" id="view-props">
+      <div class="panel">
+        <div class="panel-header"><span class="icon">🎒</span>道具管理</div>
+        <div class="panel-body">
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <button class="btn btn-primary" onclick="openModal('prop-modal')">➕ 添加道具</button>
+          </div>
+          <div class="assets-grid" id="props-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORYBOARD VIEW -->
+    <div class="view" id="view-storyboard">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="icon">🎞️</span>分镜制作
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="autoFillStoryboard()">🤖 AI自动生成分镜</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('sb-modal')">➕ 添加分镜</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="storyboard" id="storyboard-grid"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('detail')">详情</div>
+      <div class="tab" onclick="switchTab('ai')">AI生成</div>
+    </div>
+
+    <div id="tab-detail">
+      <div class="empty" id="detail-empty">
+        <div class="icon">👈</div>
+        <div>选择左侧资产查看详情</div>
+      </div>
+      <div id="detail-content" style="display:none;">
+        <div class="detail-item">
+          <div class="label">名称</div>
+          <div class="value" id="detail-name">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">类型</div>
+          <div class="value" id="detail-type">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">版本数</div>
+          <div class="value" id="detail-versions">-</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">描述</div>
+          <div class="value" id="detail-desc" style="font-size:12px;line-height:1.6;">-</div>
+        </div>
+        <div id="version-list" style="margin-top:8px;"></div>
+        <div style="margin-top:12px;display:flex;gap:6px;">
+          <button class="btn btn-sm btn-primary" onclick="generateAsset()">🎨 生成资产图</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSelected()">🗑️ 删除</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-ai" style="display:none;">
+      <div class="detail-item">
+        <div class="label">AI 模型</div>
+        <select style="width:100%;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;">
+          <option>Flux 1.1 Pro</option>
+          <option>Flux Dev</option>
+          <option>Midjourney v6</option>
+          <option>DALL·E 3</option>
+        </select>
+      </div>
+      <div class="detail-item">
+        <div class="label">画面比例</div>
+        <select style="width:100%;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;">
+          <option>16:9 宽银幕</option>
+          <option>4:3 标准</option>
+          <option>9:16 竖版</option>
+          <option>1:1 方形</option>
+        </select>
+      </div>
+      <div class="detail-item">
+        <div class="label">提示词</div>
+        <textarea id="ai-prompt" placeholder="描述画面内容，AI将关联当前选中的角色和道具..." style="width:100%;min-height:100px;padding:8px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;resize:vertical;"></textarea>
+      </div>
+      <div class="detail-item">
+        <div class="label">负面提示词</div>
+        <input type="text" placeholder="不想出现的元素..." style="width:100%;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;">
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn btn-primary" style="flex:1" onclick="generateImage()">🚀 生成图片</button>
+        <button class="btn" style="flex:1" onclick="generateBatch()">📋 批量生成</button>
+      </div>
+      <div id="gen-queue" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="item"><div class="status-dot green"></div>LocalStorage 已保存</div>
+  <div class="item" id="status-project">项目: 未命名</div>
+  <div class="item" id="status-modified" style="color:var(--warn)">● 未保存</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="char-modal">
+  <div class="modal">
+    <h2>👤 添加角色</h2>
+    <div class="form-group"><label>角色名称</label><input type="text" id="char-name" placeholder="如：林远"></div>
+    <div class="form-group"><label>角色类型</label>
+      <select id="char-type"><option>主角</option><option>配角</option><option>反派</option><option>路人</option></select>
+    </div>
+    <div class="form-group"><label>外貌描述</label><textarea id="char-desc" placeholder="外貌、发型、服装特征..." style="min-height:60px;"></textarea></div>
+    <div class="form-group"><label>性格特点</label><input type="text" id="char-personality" placeholder="如：冷静、机智、重感情"></div>
+    <div class="form-group"><label>初始版本名称</label><input type="text" id="char-vername" placeholder="如：青年期、战斗版"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="addCharacter()">确认添加</button>
+      <button class="btn" onclick="closeModal('char-modal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="scene-modal">
+  <div class="modal">
+    <h2>🏞️ 添加场景</h2>
+    <div class="form-group"><label>场景名称</label><input type="text" id="scene-name" placeholder="如：城市街道"></div>
+    <div class="form-group"><label>场景类型</label>
+      <select id="scene-type"><option>室内</option><option>室外</option><option>幻想</option><option>历史</option></select>
+    </div>
+    <div class="form-group"><label>时间设定</label>
+      <select id="scene-time"><option>白天</option><option>夜晚</option><option>黎明</option><option>黄昏</option><option>不限</option></select>
+    </div>
+    <div class="form-group"><label>场景描述</label><textarea id="scene-desc" placeholder="场景的具体环境描写..." style="min-height:60px;"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="addScene()">确认添加</button>
+      <button class="btn" onclick="closeModal('scene-modal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="prop-modal">
+  <div class="modal">
+    <h2>🎒 添加道具</h2>
+    <div class="form-group"><label>道具名称</label><input type="text" id="prop-name" placeholder="如：神秘信件"></div>
+    <div class="form-group"><label>道具类型</label>
+      <select id="prop-type"><option>武器</option><option>服装</option><option>配饰</option><option>工具</option><option>其他</option></select>
+    </div>
+    <div class="form-group"><label>道具描述</label><textarea id="prop-desc" placeholder="道具的外观和功能..." style="min-height:60px;"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="addProp()">确认添加</button>
+      <button class="btn" onclick="closeModal('prop-modal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sb-modal">
+  <div class="modal">
+    <h2>🎞️ 添加分镜</h2>
+    <div class="form-group"><label>分镜序号</label><input type="number" id="sb-num" placeholder="1" value="1"></div>
+    <div class="form-group"><label>分镜描述</label><textarea id="sb-desc" placeholder="描述这一帧的画面内容..." style="min-height:80px;"></textarea></div>
+    <div class="form-group"><label>关联场景</label><select id="sb-scene"><option value="">-- 未选择 --</option></select></div>
+    <div class="form-group"><label>关联角色</label><select id="sb-char"><option value="">-- 未选择 --</option></select></div>
+    <div class="form-group"><label>关联道具</label><select id="sb-prop"><option value="">-- 未选择 --</option></select></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary" onclick="addStoryboard()">确认添加</button>
+      <button class="btn" onclick="closeModal('sb-modal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============= DATA STORE =============
+let project = {
+  name: '我的漫剧项目',
+  script: '',
+  characters: [],
+  scenes: [],
+  props: [],
+  storyboards: [],
+  selectedAsset: null,
+  selectedAI: 'flux'
+};
+
+let selectedId = null;
+let editingType = null;
+
+// ============= INIT =============
+function init() {
+  loadProject();
+  renderAll();
+  document.getElementById('status-project').textContent = `项目: ${project.name}`;
+}
+
+// ============= SCRIPT PARSING =============
+function parseScript() {
+  const text = document.getElementById('script-input').value.trim();
+  if (!text) { alert('请先输入剧本内容'); return; }
+  project.script = text;
+
+  const progress = document.getElementById('parse-progress');
+  const fill = document.getElementById('parse-fill');
+  progress.style.display = 'block';
+
+  // Simulate parsing animation
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct += Math.random() * 15;
+    if (pct >= 100) { pct = 100; clearInterval(interval); }
+    fill.style.width = pct + '%';
+    if (pct === 100) {
+      setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 500);
+    }
+  }, 100);
+
+  // Extract assets using AI-like pattern matching
+  const chars = extractCharacters(text);
+  const scenes = extractScenes(text);
+  const props = extractProps(text);
+
+  displayExtracted({ chars, scenes, props });
+  document.getElementById('status-modified').textContent = '● 已修改';
+  document.getElementById('status-modified').style.color = 'var(--warn)';
+}
+
+function extractCharacters(text) {
+  const results = [];
+  const lines = text.split('\n');
+  const charPattern = /角色[：:](.+?)[（(](.+?)[）)]/g;
+  let match;
+  while ((match = charPattern.exec(text)) !== null) {
+    results.push({ name: match[1].trim(), type: match[2].trim(), desc: '' });
+  }
+  const mentioned = [...new Set(results.map(r => r.name))];
+  return mentioned.map((name, i) => ({ id: 'char_' + Date.now() + '_' + i, name, type: '主角', desc: '从剧本中提取', versions: [{ id: 1, name: '默认版本', img: '' }] }));
+}
+
+function extractScenes(text) {
+  const results = [];
+  const scenePatt = /场景[：:](.+?)[。\n]/g;
+  let match;
+  while ((match = scenePatt.exec(text)) !== null) {
+    results.push(match[1].trim());
+  }
+  // Also extract from 【】 brackets
+  const brackets = text.match(/【(.+?)】/g) || [];
+  brackets.forEach(b => { const name = b.replace(/【|】/g, ''); if (!results.includes(name)) results.push(name); });
+  return results.map((name, i) => ({ id: 'scene_' + Date.now() + '_' + i, name, type: '室内', time: '白天', desc: '从剧本中提取', img: '' }));
+}
+
+function extractProps(text) {
+  const results = [];
+  const propPatt = /道具[：:](.+?)[。\n]/g;
+  let match;
+  while ((match = propPatt.exec(text)) !== null) {
+    const items = match[1].split(/[、，,]/);
+    items.forEach(item => { const name = item.trim(); if (name) results.push(name); });
+  }
+  return results.map((name, i) => ({ id: 'prop_' + Date.now() + '_' + i, name, type: '其他', desc: '从剧本中提取', img: '' }));
+}
+
+function displayExtracted({ chars, scenes, props }) {
+  const panel = document.getElementById('extracted-panel');
+  const grid = document.getElementById('assets-grid');
+  panel.style.display = 'block';
+  let html = '';
+
+  chars.forEach(c => {
+    html += `<div class="asset-card" onclick="this.classList.toggle('selected')">
+      <span class="tag tag-char">角色</span>
+      <div class="name">${c.name}</div>
+      <div class="desc">${c.desc || '待补充描述'}</div>
+    </div>`;
+  });
+  scenes.forEach(s => {
+    html += `<div class="asset-card" onclick="this.classList.toggle('selected')">
+      <span class="tag tag-scene">场景</span>
+      <div class="name">${s.name}</div>
+      <div class="desc">${s.desc || '待补充描述'}</div>
+    </div>`;
+  });
+  props.forEach(p => {
+    html += `<div class="asset-card" onclick="this.classList.toggle('selected')">
+      <span class="tag tag-prop">道具</span>
+      <div class="name">${p.name}</div>
+      <div class="desc">${p.desc || '待补充描述'}</div>
+    </div>`;
+  });
+
+  grid.innerHTML = html || '<div class="empty"><div class="icon">📭</div><div>未检测到资产，请手动添加</div></div>';
+}
+
+// ============= CRUD =============
+function addCharacter() {
+  const name = document.getElementById('char-name').value.trim();
+  if (!name) { alert('请输入角色名称'); return; }
+  project.characters.push({
+    id: 'char_' + Date.now(),
+    name,
+    type: document.getElementById('char-type').value,
+    desc: document.getElementById('char-desc').value,
+    personality: document.getElementById('char-personality').value,
+    versions: [{ id: Date.now(), name: document.getElementById('char-vername').value || '默认版本', img: '' }]
+  });
+  closeModal('char-modal');
+  clearCharForm();
+  renderAll();
+  saveProject();
+  markModified();
+}
+
+function addScene() {
+  const name = document.getElementById('scene-name').value.trim();
+  if (!name) { alert('请输入场景名称'); return; }
+  project.scenes.push({
+    id: 'scene_' + Date.now(),
+    name,
+    type: document.getElementById('scene-type').value,
+    time: document.getElementById('scene-time').value,
+    desc: document.getElementById('scene-desc').value,
+    img: ''
+  });
+  closeModal('scene-modal');
+  clearSceneForm();
+  renderAll();
+  saveProject();
+  markModified();
+}
+
+function addProp() {
+  const name = document.getElementById('prop-name').value.trim();
+  if (!name) { alert('请输入道具名称'); return; }
+  project.props.push({
+    id: 'prop_' + Date.now(),
+    name,
+    type: document.getElementById('prop-type').value,
+    desc: document.getElementById('prop-desc').value,
+    img: ''
+  });
+  closeModal('prop-modal');
+  clearPropForm();
+  renderAll();
+  saveProject();
+  markModified();
+}
+
+function addStoryboard() {
+  const num = document.getElementById('sb-num').value;
+  const desc = document.getElementById('sb-desc').value;
+  const sceneId = document.getElementById('sb-scene').value;
+  const charId = document.getElementById('sb-char').value;
+  const propId = document.getElementById('sb-prop').value;
+
+  project.storyboards.push({
+    id: 'sb_' + Date.now(),
+    num: num || project.storyboards.length + 1,
+    desc,
+    sceneId,
+    charId,
+    propId,
+    img: '',
+    status: 'pending'
+  });
+  closeModal('sb-modal');
+  renderAll();
+  saveProject();
+  markModified();
+}
+
+function createCharacterFromExtracted() {
+  const selected = document.querySelectorAll('#assets-grid .asset-card.selected .tag.tag-char');
+  selected.forEach(el => {
+    const name = el.nextElementSibling.textContent;
+    if (!project.characters.find(c => c.name === name)) {
+      project.characters.push({ id: 'char_' + Date.now(), name, type: '主角', desc: '', personality: '', versions: [{ id: Date.now(), name: '默认版本', img: '' }] });
+    }
+  });
+  renderAll();
+  saveProject();
+  markModified();
+  switchView('characters');
+}
+
+function createSceneFromExtracted() {
+  const selected = document.querySelectorAll('#assets-grid .asset-card.selected .tag.tag-scene');
+  selected.forEach(el => {
+    const name = el.nextElementSibling.textContent;
+    if (!project.scenes.find(s => s.name === name)) {
+      project.scenes.push({ id: 'scene_' + Date.now(), name, type: '室内', time: '白天', desc: '', img: '' });
+    }
+  });
+  renderAll();
+  saveProject();
+  markModified();
+  switchView('scenes');
+}
+
+function createPropFromExtracted() {
+  const selected = document.querySelectorAll('#assets-grid .asset-card.selected .tag.tag-prop');
+  selected.forEach(el => {
+    const name = el.nextElementSibling.textContent;
+    if (!project.props.find(p => p.name === name)) {
+      project.props.push({ id: 'prop_' + Date.now(), name, type: '其他', desc: '', img: '' });
+    }
+  });
+  renderAll();
+  saveProject();
+  markModified();
+  switchView('props');
+}
+
+// ============= RENDER =============
+function renderAll() {
+  renderChars();
+  renderScenes();
+  renderProps();
+  renderStoryboard();
+  updateStats();
+  updateSelectors();
+}
+
+function renderChars() {
+  const grid = document.getElementById('chars-grid');
+  if (!project.characters.length) { grid.innerHTML = '<div class="empty"><div class="icon">👤</div><div>暂无角色，添加或从剧本中提取</div></div>'; return; }
+  grid.innerHTML = project.characters.map(c => `
+    <div class="asset-card ${selectedId === c.id ? 'selected' : ''}" onclick="selectAsset('${c.id}', 'char', this)">
+      <span class="tag tag-char">${c.type}</span>
+      <div class="name">${c.name}</div>
+      <div class="desc">${c.personality || c.desc || '暂无描述'}</div>
+      <div class="version-selector">
+        ${c.versions.map((v, i) => `<span class="version-chip ${i === 0 ? 'active' : ''}" onclick="event.stopPropagation();selectVersion('${c.id}', ${i})">${v.name}</span>`).join('')}
+        <span class="version-chip" onclick="event.stopPropagation();addVersion('${c.id}')">➕</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderScenes() {
+  const grid = document.getElementById('scenes-grid');
+  if (!project.scenes.length) { grid.innerHTML = '<div class="empty"><div class="icon">🏞️</div><div>暂无场景，添加或从剧本中提取</div></div>'; return; }
+  grid.innerHTML = project.scenes.map(s => `
+    <div class="asset-card ${selectedId === s.id ? 'selected' : ''}" onclick="selectAsset('${s.id}', 'scene', this)">
+      <span class="tag tag-scene">${s.type}</span>
+      <div class="name">${s.name}</div>
+      <div class="desc">${s.desc || '暂无描述'}</div>
+      ${s.img ? `<div class="img-placeholder"><img src="${s.img}" alt="${s.name}"></div>` : '<div class="img-placeholder">🏞️</div>'}
+    </div>`).join('');
+}
+
+function renderProps() {
+  const grid = document.getElementById('props-grid');
+  if (!project.props.length) { grid.innerHTML = '<div class="empty"><div class="icon">🎒</div><div>暂无道具，添加或从剧本中提取</div></div>'; return; }
+  grid.innerHTML = project.props.map(p => `
+    <div class="asset-card ${selectedId === p.id ? 'selected' : ''}" onclick="selectAsset('${p.id}', 'prop', this)">
+      <span class="tag ${p.type === '武器' ? 'tag-weapon' : 'tag-prop'}">${p.type}</span>
+      <div class="name">${p.name}</div>
+      <div class="desc">${p.desc || '暂无描述'}</div>
+      ${p.img ? `<div class="img-placeholder"><img src="${p.img}" alt="${p.name}"></div>` : '<div class="img-placeholder">🎒</div>'}
+    </div>`).join('');
+}
+
+function renderStoryboard() {
+  const grid = document.getElementById('storyboard-grid');
+  let boards = [...project.storyboards].sort((a, b) => (a.num || 0) - (b.num || 0));
+  let html = boards.map(b => {
+    const scene = project.scenes.find(s => s.id === b.sceneId);
+    const char = project.characters.find(c => c.id === b.charId);
+    const prop = project.props.find(p => p.id === b.propId);
+    const tags = [];
+    if (scene) tags.push(`<span class="sb-tag" style="background:rgba(6,182,212,0.2);color:var(--accent2)">🏞️${scene.name}</span>`);
+    if (char) tags.push(`<span class="sb-tag" style="background:rgba(124,109,250,0.2);color:var(--accent)">👤${char.name}</span>`);
+    if (prop) tags.push(`<span class="sb-tag" style="background:rgba(244,114,182,0.2);color:var(--accent3)">🎒${prop.name}</span>`);
+    return `<div class="sb-panel">
+      <div class="sb-img">
+        ${b.img ? `<img src="${b.img}" alt="分镜${b.num}">` : `<div style="font-size:40px;">🎬</div>`}
+        <div class="overlay">
+          <button class="gen-btn" onclick="generateBoardImg('${b.id}')">🎨 AI生成</button>
+        </div>
+      </div>
+      <div class="sb-meta">
+        <div class="sb-num">分镜 #${b.num || '?'}</div>
+        <div class="sb-desc">${b.desc || '暂无描述'}</div>
+        <div class="sb-tags">${tags.join('')}</div>
+      </div>
+    </div>`;
+  }).join('');
+  html += `<div class="sb-add" onclick="openModal('sb-modal')"><div class="plus">➕</div><div>添加分镜</div></div>`;
+  grid.innerHTML = html;
+}
+
+function updateStats() {
+  document.getElementById('stat-chars').textContent = project.characters.length;
+  document.getElementById('stat-scenes').textContent = project.scenes.length;
+  document.getElementById('stat-props').textContent = project.props.length;
+  document.getElementById('stat-boards').textContent = project.storyboards.length;
+  document.getElementById('badge-chars').textContent = project.characters.length;
+  document.getElementById('badge-scenes').textContent = project.scenes.length;
+  document.getElementById('badge-props').textContent = project.props.length;
+  document.getElementById('badge-boards').textContent = project.storyboards.length;
+}
+
+function updateSelectors() {
+  const sceneSel = document.getElementById('sb-scene');
+  const charSel = document.getElementById('sb-char');
+  const propSel = document.getElementById('sb-prop');
+  if (sceneSel) {
+    sceneSel.innerHTML = '<option value="">-- 未选择 --</option>' + project.scenes.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  }
+  if (charSel) {
+    charSel.innerHTML = '<option value="">-- 未选择 --</option>' + project.characters.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+  if (propSel) {
+    propSel.innerHTML = '<option value="">-- 未选择 --</option>' + project.props.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+}
+
+// ============= SELECTION & DETAIL =============
+function selectAsset(id, type, el) {
+  selectedId = id;
+  editingType = type;
+  document.querySelectorAll('.asset-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+
+  let asset;
+  if (type === 'char') asset = project.characters.find(c => c.id === id);
+  if (type === 'scene') asset = project.scenes.find(s => s.id === id);
+  if (type === 'prop') asset = project.props.find(p => p.id === id);
+
+  if (!asset) return;
+  document.getElementById('detail-empty').style.display = 'none';
+  document.getElementById('detail-content').style.display = 'block';
+  document.getElementById('detail-name').textContent = asset.name;
+  document.getElementById('detail-type').textContent = asset.type || type;
+  document.getElementById('detail-desc').textContent = asset.desc || '暂无描述';
+  const versions = asset.versions ? asset.versions.length : (asset.img ? 1 : 0);
+  document.getElementById('detail-versions').textContent = versions;
+  document.getElementById('detail-versions').textContent = type === 'char' ? `${asset.versions ? asset.versions.length : 0} 个版本` : (asset.img ? '已生成' : '未生成');
+}
+
+function generateAsset() {
+  if (!selectedId || !editingType) { alert('请先选择要生成的资产'); return; }
+  const typeName = { char: '角色', scene: '场景', prop: '道具' }[editingType];
+  const asset = editingType === 'char' ? project.characters.find(c => c.id === selectedId) :
+                editingType === 'scene' ? project.scenes.find(s => s.id === selectedId) :
+                project.props.find(p => p.id === selectedId);
+  if (asset) {
+    const prompt = editingType === 'char'
+      ? `anime character portrait, ${asset.name}, ${asset.personality || ''} personality, ${asset.desc || ''}, manga style, detailed, high quality`
+      : editingType === 'scene'
+      ? `comic scene background, ${asset.name}, ${asset.type}, ${asset.desc || ''}, manga style, atmospheric lighting, detailed`
+      : `comic prop item, ${asset.name}, ${asset.type}, ${asset.desc || ''}, manga style, detailed`;
+    document.getElementById('ai-prompt').value = prompt;
+    switchTab('ai');
+    alert(`✅ 已生成提示词！\n\n复制提示词到 AI 生图工具中：\n\n${prompt}\n\n提示词已填入右侧「AI生成」面板。`);
+  }
+}
+
+function generateBoardImg(id) {
+  const board = project.storyboards.find(b => b.id === id);
+  if (!board) return;
+  const scene = project.scenes.find(s => s.id === board.sceneId);
+  const char = project.characters.find(c => c.id === board.charId);
+  const prop = project.props.find(p => p.id === board.propId);
+  const prompt = `manga comic panel, ${board.desc || 'dynamic scene'}, ${scene ? 'scene: ' + scene.name : ''}, ${char ? 'character: ' + char.name : ''}, ${prop ? 'with prop: ' + prop.name : ''}, manga style, anime illustration, cinematic composition, high quality`;
+  document.getElementById('ai-prompt').value = prompt;
+  alert(`✅ 分镜 #${board.num} 提示词已生成！\n\n复制到 AI 生图工具中使用：\n\n${prompt}`);
+}
+
+function generateImage() {
+  const prompt = document.getElementById('ai-prompt').value;
+  if (!prompt) { alert('请先输入提示词'); return; }
+  alert(`🎨 提示词已准备好！\n\n复制以下内容到 Flux/Midjourney 等工具：\n\n${prompt}\n\n生成后将图片保存到对应资产即可。`);
+}
+
+function generateBatch() {
+  const ungenerated = project.storyboards.filter(b => !b.img);
+  if (!ungenerated.length) { alert('所有分镜已生成完毕！'); return; }
+  const prompts = ungenerated.map(b => {
+    const scene = project.scenes.find(s => s.id === b.sceneId);
+    const char = project.characters.find(c => c.id === b.charId);
+    return `#${b.num}: ${b.desc}\n场景:${scene?.name||''} 角色:${char?.name||''}`;
+  }).join('\n\n');
+  alert(`📋 批量生成提示词（共${ungenerated.length}个分镜待生成）：\n\n${prompts}`);
+}
+
+function autoFillStoryboard() {
+  if (!project.script) { alert('请先在剧本解析中输入剧本内容'); switchView('script'); return; }
+  // Auto-generate storyboard from script
+  const lines = project.script.split('\n').filter(l => l.trim() && !l.startsWith('【') && !l.startsWith('旁白'));
+  lines.forEach((line, i) => {
+    project.storyboards.push({
+      id: 'sb_' + Date.now() + '_' + i,
+      num: i + 1,
+      desc: line.trim(),
+      sceneId: '',
+      charId: '',
+      propId: '',
+      img: '',
+      status: 'pending'
+    });
+  });
+  renderAll();
+  saveProject();
+  markModified();
+  alert(`✅ 已从剧本自动生成 ${lines.length} 个分镜！`);
+}
+
+// ============= SAMPLE =============
+function loadSampleScript() {
+  document.getElementById('script-input').value = `【第一幕·深夜茶馆】
+旁白：深秋的夜晚，街角的茶馆灯火昏暗。
+角色：林远（青年侦探）推开茶馆的木门走了进来。
+场景：茶馆内，老友李明已在角落的位置等候。
+道具：茶盏、神秘信件、怀表
+
+角色：林远（青年侦探）坐在李明对面，神情严肃。
+角色：李明（老友）将一封信推到林远面前，压低声音说。
+道具：神秘信件
+
+旁白：林远拆开信封，里面只有一张泛黄的纸条，上面写着一行字。
+
+【第二幕·纸条之谜】
+角色：林远（青年侦探）皱起眉头，纸条上的字迹似曾相识。
+场景：林远的书房，满墙的资料和地图
+道具：纸条、放大镜、老式台灯
+
+旁白：这是第三个同样的信息了——每次都预示着下一个案发现场。`;
+}
+
+// ============= PERSISTENCE =============
+function saveProject() {
+  localStorage.setItem('comic_flow_project', JSON.stringify(project));
+  document.getElementById('status-modified').textContent = '● 已保存';
+  document.getElementById('status-modified').style.color = 'var(--success)';
+  setTimeout(() => {
+    document.getElementById('status-modified').textContent = '● 未保存（本地）';
+    document.getElementById('status-modified').style.color = 'var(--warn)';
+  }, 2000);
+}
+
+function loadProject() {
+  const saved = localStorage.getItem('comic_flow_project');
+  if (saved) {
+    try { project = JSON.parse(saved); } catch (e) {}
+  }
+}
+
+function saveToGitHub() {
+  alert('💾 正在保存到 GitHub...\n\n请在 GitHub 上手动上传，或配置 GitHub Actions 自动同步。\n\n数据已保存在浏览器本地（LocalStorage），可在浏览器间导出/导入。');
+}
+
+function exportProject() {
+  const json = JSON.stringify(project, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `comic-flow-${Date.now()}.json`;
+  a.click();
+  alert('✅ 项目已导出为 JSON 文件');
+}
+
+function importProject() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        project = JSON.parse(ev.target.result);
+        renderAll();
+        saveProject();
+        alert('✅ 项目导入成功！');
+      } catch (err) { alert('❌ 文件格式错误'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ============= HELPERS =============
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.closest('.nav-item')?.classList.add('active') || document.querySelector(`.nav-item[onclick*="${name}"]`)?.classList.add('active');
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-detail').style.display = tab === 'detail' ? 'block' : 'none';
+  document.getElementById('tab-ai').style.display = tab === 'ai' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function selectAI(name) {
+  project.selectedAI = name;
+  document.querySelectorAll('.ai-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function selectVersion(charId, verIdx) {
+  const char = project.characters.find(c => c.id === charId);
+  if (!char) return;
+  document.querySelectorAll('.version-chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function addVersion(charId) {
+  const char = project.characters.find(c => c.id === charId);
+  if (!char) return;
+  const name = prompt('新版本名称（如：战斗版、老年版）:');
+  if (name) {
+    char.versions.push({ id: Date.now(), name, img: '' });
+    renderChars();
+    saveProject();
+  }
+}
+
+function deleteSelected() {
+  if (!selectedId || !editingType) return;
+  if (!confirm('确认删除？')) return;
+  if (editingType === 'char') project.characters = project.characters.filter(c => c.id !== selectedId);
+  if (editingType === 'scene') project.scenes = project.scenes.filter(s => s.id !== selectedId);
+  if (editingType === 'prop') project.props = project.props.filter(p => p.id !== selectedId);
+  selectedId = null;
+  editingType = null;
+  document.getElementById('detail-empty').style.display = 'block';
+  document.getElementById('detail-content').style.display = 'none';
+  renderAll();
+  saveProject();
+  markModified();
+}
+
+function markModified() {
+  document.getElementById('status-modified').textContent = '● 未保存';
+  document.getElementById('status-modified').style.color = 'var(--warn)';
+}
+
+function openModal(id) { document.getElementById(id).classList.add('show'); updateSelectors(); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function clearCharForm() { ['char-name','char-desc','char-personality','char-vername'].forEach(id => document.getElementById(id).value = ''); }
+function clearSceneForm() { ['scene-name','scene-desc'].forEach(id => document.getElementById(id).value = ''); }
+function clearPropForm() { ['prop-name','prop-desc'].forEach(id => document.getElementById(id).value = ''); }
+function filterAssets(type) {
+  const kw = document.getElementById('char-search').value.toLowerCase();
+  document.querySelectorAll('#chars-grid .asset-card').forEach(card => {
+    const name = card.querySelector('.name').textContent.toLowerCase();
+    card.style.display = name.includes(kw) ? 'block' : 'none';
+  });
+}
+
+function clearScript() { document.getElementById('script-input').value = ''; project.script = ''; document.getElementById('extracted-panel').style.display = 'none'; }
+
+// Close modal on outside click
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('show');
+});
+
+init();
+</script>
+</body>
+</html>
